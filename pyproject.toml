@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-krea2-pixelhead"
 description = "Zero-VAE Bridged Direct RGB Pixel Head for Krea-2 (24.7x faster than stock qwen_image_vae, 52.6 MiB BF16, Turbo & Raw & Style Reference compatible) / Krea-2 免 VAE 极速像素直出节点"
-version = "1.0.0"
+version = "1.0.1"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
