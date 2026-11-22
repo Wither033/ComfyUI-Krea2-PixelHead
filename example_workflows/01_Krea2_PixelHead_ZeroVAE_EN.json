@@ -18,13 +18,13 @@
       "mode": 0,
       "inputs": [],
       "outputs": [],
-      "title": "⚡ Krea-2 Direct Pixel Head — Zero-VAE Fast Readout & 1:1 Stock VAE Comparison",
+      "title": "Krea-2 Direct Pixel Head — Zero-VAE Fast Readout & 1:1 Stock VAE Comparison",
       "properties": {
         "Node name for S&R": "MarkdownNote",
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        "### Krea-2 Bridged Direct Pixel Head (Zero-VAE RGB Readout)\n- **Default Zero-VAE Fast Path (`24.7x` Faster)**: `KSampler` feeds directly into `9. Krea-2 Pixel Decode (Zero VAE)`, reading `6144`-dim pre-`last.linear` DiT features + `2x2` denoised latents without loading `qwen_image_vae.safetensors`!\n- **Universal Compatibility**: Works out-of-the-box with `krea2_turbo` (`8` steps, `CFG 1.0`), `krea2_raw` (`20-35` steps, `CFG > 1.0`), and Style/Reference Image conditioning (automatically strips text & reference tokens).\n- **Optional 1:1 Side-by-Side Comparison**: Select the bypassed purple nodes (`11`, `12`, `13`) at the bottom and press **`Ctrl + B`** to compare against stock `qwen_image_vae` on the exact same seed."
+        "### Krea-2 Bridged Direct Pixel Head (Zero-VAE RGB Readout)\n- **Default Zero-VAE Fast Path (`24.7x` Faster)**: `KSampler` feeds directly into `9. Krea-2 Pixel Decode (Zero VAE)`, reading `6144`-dim pre-`last.linear` DiT features + `2x2` denoised latents without loading `qwen_image_vae.safetensors`.\n- **Universal Compatibility**: Works with `krea2_turbo` (`8` steps, `CFG 1.0`), `krea2_raw` (`20-35` steps, `CFG > 1.0`), and Style/Reference Image conditioning (automatically strips text & reference tokens).\n- **Optional 1:1 Side-by-Side Comparison**: Select the bypassed purple nodes (`11`, `12`, `13`) at the bottom and press **`Ctrl + B`** to compare against stock `qwen_image_vae` on the exact same seed."
       ],
       "color": "#1e2d24",
       "bgcolor": "#14221a"

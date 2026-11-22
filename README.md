@@ -1,93 +1,70 @@
-<div align="center">
+# ComfyUI-Krea2-PixelHead
 
-# ⚡ ComfyUI-Krea2-PixelHead
+Bridged direct RGB pixel readout head for **Krea-2** in ComfyUI, replacing the `242.0 MiB` 3D-causal `qwen_image_vae` (`WanVAE`) decoder.
 
-**Drop-in Zero-VAE Bridged Direct RGB Pixel Readout for Krea-2 (`24.7×` Faster · `52.6 MiB` BF16 · Zero High-Res VAE OOMs)**
-
-[**English**](README.md) | [**简体中文**](README_zh.md)
+[English](README.md) | [简体中文](README_zh.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Hugging Face Weights](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-pocis%2FKrea--2--PixelHead-yellow)](https://huggingface.co/pocis/Krea-2-PixelHead)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-pocis%2FKrea--2--PixelHead-yellow)](https://huggingface.co/pocis/Krea-2-PixelHead)
 [![Comfy Registry](https://img.shields.io/badge/Comfy%20Registry-comfyui--krea2--pixelhead-blueviolet)](https://registry.comfy.org/publishers/wither033/nodes/comfyui-krea2-pixelhead)
-[![Weight Size](https://img.shields.io/badge/Weight-52.6%20MiB%20(BF16)-blue)](#2-download-pixel-head-weights)
-[![Speedup](https://img.shields.io/badge/Speedup-24.7%C3%97%20vs%20Stock%20VAE-brightgreen)](#-benchmark-768768-held-out-fine-art-split)
 
-</div>
+Following [*FastFrames* (`arXiv:2611.23226`)](https://arxiv.org/abs/2611.23226), this node hooks `SingleStreamDiT`'s `last.linear` on the final sampling step to extract the `6144`-dim modulated target-image tokens (stripping variable-length text and style-reference tokens) together with the denoised `2×2` latent patches (`d_lat = 64`), and decodes them to RGB with a `27.49M`-parameter (`52.6 MiB` BF16) ConvNeXt + PixelShuffle head.
 
----
+At `768×768` on an NVIDIA L4, median decode latency drops from `1468.9 ms` (`qwen_image_vae`) to `59.55 ms` (`24.7×`), with `< 0.2 GB` peak extra VRAM.
 
-**`ComfyUI-Krea2-PixelHead`** replaces Krea-2's `242.0 MiB` 3D-causal `qwen_image_vae` (`WanVAE`) decoder with a **`27.49M`-parameter (`52.6 MiB` BF16)** Bridged Direct Pixel Readout Head built on the mathematical formulation of Apple's [*FastFrames* (`arXiv:2611.23226`)](https://arxiv.org/abs/2611.23226).
+![1:1 held-out comparison against stock qwen_image_vae](assets/hero_1to1_comparison.png)
 
-In Krea-2 (`SingleStreamDiT`), compressing `6144`-dimensional single-stream tokens down to a `16`-channel (`2×2` = `64`-dim) bottleneck discards `99%` of the DiT's spatial-semantic bandwidth—and then spends **`~1.47 seconds`** running heavy 3D causal convolutions in `qwen_image_vae` just to reconstruct pixels. Instead, this node taps Krea-2's **`6144`-dim modulated target-image tokens** pre-`last.linear` (automatically stripping variable-length text & style-reference tokens) plus the **denoised `2×2` latent `x0_hat_norm`**, decoding directly to crisp RGB **`24.7×` faster** with **`< 0.2 GB` peak VRAM**.
+## Features
 
-![1:1 Native Resolution Held-Out Comparison](assets/hero_1to1_comparison.png)
+- **`24.7×` faster decode, no VAE needed for T2I**: Avoids running the 3D causal convolutions of `qwen_image_vae` and prevents end-of-sampling VRAM spikes at `1024–2048px`.
+- **`6144 → 1024` bridged readout**: Uses a bias-free linear bridge (`6144 → 1024`) plus `FP32` output projection, preserving fine lace, brushwork, and dark tonal transitions without `BF16` banding.
+- **Compatible across Krea-2 variants**:
+  - Works with `krea2_turbo` (8 steps, `CFG = 1.0`, `shift = 1.15`), `krea2_raw` (20–35 steps, `CFG > 1.0`), FP8/INT8/GGUF quantizations, and fine-tunes.
+  - Supports both Text-to-Image and Style/Reference image conditioning (`tap.py` computes `txtlen` and `ref_tokens` dynamically to slice only the target image tokens).
 
----
+## Benchmark (`768×768` Held-Out Fine-Art Split, NVIDIA L4)
 
-## ✨ Key Highlights
+Evaluated against `qwen_image_vae.safetensors` (`Comfy-Org/Krea-2`) across 40 held-out paintings and engravings (alternating 8-step Turbo $\sigma = 0.3109$ and multi-step $\sigma = 0.1163$):
 
-- **24.7× Faster Decode (`1468.9 ms` → `59.55 ms`) & Zero VAE OOMs**: Completely skips `VAEDecode` and its multi-gigabyte activation spikes on `1024–2048px` generations.
-- **96× Wider Information Bandwidth (`6144 + 64` dims vs. `64`-dim Latent)**: Bias-free `Linear(6144 → 1024)` feature bridge + `FP32` output projection preserves delicate pleated lace collars (`37.1 dB`), hands & oil brushwork (`39.1 dB`), dark chiaroscuro (`41.6 dB`), and fine copperplate cross-hatching (`30.8 dB`) with zero quantization banding.
-- **One Checkpoint, Universal Krea-2 Compatibility**:
-  - Works seamlessly with **`krea2_turbo` (`8` steps, `CFG 1.0`, `shift=1.15`)**, **`krea2_raw` (`20–35` steps, `CFG > 1.0`)**, FP8/INT8/GGUF quantizations, and community fine-tunes;
-  - Works out-of-the-box for both **Text-to-Image (T2I)** and **Style / Reference Image conditioning** (`tap.py` dynamically computes exact `txtlen` and `ref_tokens` to slice pure target-image tokens!).
-
----
-
-## 📊 Benchmark (`768×768` Held-Out Fine-Art Split)
-
-Evaluated against the official `qwen_image_vae.safetensors` (`Comfy-Org/Krea-2`) on 40 held-out high-complexity fine-art paintings & engravings (alternating 8-Step Turbo $\sigma = 0.3109$ and Multi-Step $\sigma = 0.1163$):
-
-| Decoder | File Size | Median Decode Latency | Speedup vs. Stock VAE | Held-Out PSNR (↑) | LPIPS-VGG (↓) |
+| Decoder | Size | Median Latency | Speedup | PSNR (↑) | LPIPS-VGG (↓) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Official `qwen_image_vae` (`WanVAE`)** | `242.0 MiB` | `1468.90 ms` | `1.0×` | *(Reference)* | `0.0000` |
-| **Ours: `Krea2PixelHead`** | **`52.6 MiB` (BF16)** / `104.9 MiB` (FP32) | **`59.55 ms`** | **`24.7×`** | **`33.33 dB`** | **`0.2300`** |
+| Official `qwen_image_vae` | `242.0 MiB` | `1468.90 ms` | `1.0×` | *(ref)* | `0.0000` |
+| `Krea2PixelHead` | `52.6 MiB` (BF16) / `104.9 MiB` (FP32) | `59.55 ms` | `24.7×` | `33.33 dB` | `0.2300` |
 
-- **Classical & Chiaroscuro Portraits**: **`37.1 – 41.6 dB` PSNR** (virtually indistinguishable `1:1` at native pixel zoom)
-- **Multi-Subject Color Illustration**: **`32.9 – 33.5 dB` PSNR**
-- **Fine Copperplate Etchings & Linework**: **`30.8 dB` PSNR**
+- Classical & low-key portraits: `37.1 – 41.6 dB` PSNR
+- Multi-subject color illustration: `32.9 – 33.5 dB` PSNR
+- Fine copperplate etchings: `30.8 dB` PSNR
 
----
+## Related Repositories
 
-## 🌐 FastFrames Zero-VAE Direct PixelHead Ecosystem
-
-Each diffusion backbone has its own internal DiT feature space and requires a dedicated PixelHead. Explore our open-source MIT family:
-
-| Target Model | ComfyUI Custom Node (GitHub & Registry) | Hugging Face Weights | Key Specs & Speedup |
+| Model | ComfyUI Node | Weights | Notes |
 | :--- | :--- | :--- | :--- |
-| **Krea-2** *(This Repo)* | **[Wither033/ComfyUI-Krea2-PixelHead](https://github.com/Wither033/ComfyUI-Krea2-PixelHead)** | **[pocis/Krea-2-PixelHead](https://huggingface.co/pocis/Krea-2-PixelHead)** | `52.6 MiB` BF16 · `6144d` Bridged RGB · **`24.7×` faster** (`33.33 dB` PSNR, up to `41.6 dB` on portraits) |
-| **Qwen-Image 2.1** (`1×` & `2×` SR) | **[Wither033/ComfyUI-QwenImage21-PixelHead](https://github.com/Wither033/ComfyUI-QwenImage21-PixelHead)** | **[pocis/Qwen-Image-2.1-PixelHead](https://huggingface.co/pocis/Qwen-Image-2.1-PixelHead)** | `48.8 MiB` (`1×`) / `52.1 MiB` (`1×`+`2×` `2048px`) · Native **4-Ch RGBA** · **`67.1×` faster** (`5.55 ms`, `33.91 dB` PSNR) |
-| **MiniMax-H3** *(3D Video · ⚠️ Preview)* | **[Wither033/ComfyUI-MiniMaxH3-PixelHead](https://github.com/Wither033/ComfyUI-MiniMaxH3-PixelHead)** | **[pocis/MiniMax-H3-Video-PixelHead](https://huggingface.co/pocis/MiniMax-H3-Video-PixelHead)** | ⚠️ *Experimental Preview (Not Recommended Yet)* · `45.7 MiB` BF16 · `8.5×` faster (`v3 Sharp` upcoming) |
-| **Training Toolkit & Playbook** *(All 2D/3D DiTs)* | **[Wither033/FastFrames-PixelHead-Trainer](https://github.com/Wither033/FastFrames-PixelHead-Trainer)** | **[HF Unified Collection](https://huggingface.co/collections/pocis/fastframes-zero-vae-direct-pixelheads-comfyui-6b031df8e9212f8bae294154)** | Full DiT surgery methodology, `pixelhead_trainer` PyTorch library & 5 one-click Colab L4 training notebooks |
+| **Krea-2** *(this repo)* | [Wither033/ComfyUI-Krea2-PixelHead](https://github.com/Wither033/ComfyUI-Krea2-PixelHead) | [pocis/Krea-2-PixelHead](https://huggingface.co/pocis/Krea-2-PixelHead) | `52.6 MiB` BF16, `6144d` bridged RGB, `59.55 ms` (`24.7×`), `33.33 dB` |
+| **Qwen-Image 2.1** | [Wither033/ComfyUI-QwenImage21-PixelHead](https://github.com/Wither033/ComfyUI-QwenImage21-PixelHead) | [pocis/Qwen-Image-2.1-PixelHead](https://huggingface.co/pocis/Qwen-Image-2.1-PixelHead) | `48.8 MiB` (`1x`) / `52.1 MiB` (`1x`+`2x`), 4-ch RGBA, `5.55 ms` (`67.1×`), `33.91 dB` |
+| **MiniMax-H3** *(preview)* | [Wither033/ComfyUI-MiniMaxH3-PixelHead](https://github.com/Wither033/ComfyUI-MiniMaxH3-PixelHead) | [pocis/MiniMax-H3-Video-PixelHead](https://huggingface.co/pocis/MiniMax-H3-Video-PixelHead) | Experimental preview (not recommended for production yet; high-frequency textures are soft) |
+| **Training Code & Notes** | [Wither033/FastFrames-PixelHead-Trainer](https://github.com/Wither033/FastFrames-PixelHead-Trainer) | [HF Collection](https://huggingface.co/collections/pocis/fastframes-zero-vae-direct-pixelheads-comfyui-6b031df8e9212f8bae294154) | Training toolkit, DiT hook notes, and Colab L4 scripts |
 
----
+## Installation
 
-## 🚀 Installation & Model Weights
+### 1. Custom Node
+Install via ComfyUI Manager (`ComfyUI-Krea2-PixelHead`), `comfy node install comfyui-krea2-pixelhead`, or `git clone`:
 
-### 1. Install Custom Node
-- **Via ComfyUI Manager / Comfy Registry**: Search for `ComfyUI-Krea2-PixelHead` (`comfyui-krea2-pixelhead`) and click **Install**.
-- **Via `comfy-cli`**:
-  ```bash
-  comfy node install comfyui-krea2-pixelhead
-  ```
-- **Manual Git Clone**:
-  ```bash
-  cd ComfyUI/custom_nodes
-  git clone https://github.com/Wither033/ComfyUI-Krea2-PixelHead.git
-  ```
+```bash
+cd ComfyUI/custom_nodes
+git clone https://github.com/Wither033/ComfyUI-Krea2-PixelHead.git
+```
 
-### 2. Download Pixel Head Weights
-Download from Hugging Face (**[pocis/Krea-2-PixelHead](https://huggingface.co/pocis/Krea-2-PixelHead)**) and place into **`ComfyUI/models/pixel_heads/`** *(or `ComfyUI/models/vae/`)*:
-- **`krea2_pixel_head_bf16.safetensors`** (`52.6 MiB` — **Recommended**, BF16 trunk + FP32 output projection, zero quality loss)
-- **`krea2_pixel_head.safetensors`** (`104.9 MiB` — Full FP32 master checkpoint)
+### 2. Weights
+Download from [pocis/Krea-2-PixelHead](https://huggingface.co/pocis/Krea-2-PixelHead) into `ComfyUI/models/pixel_heads/` (or `ComfyUI/models/vae/`):
 
----
+- `krea2_pixel_head_bf16.safetensors` (`52.6 MiB`): recommended, BF16 trunk + FP32 output layer.
+- `krea2_pixel_head.safetensors` (`104.9 MiB`): full FP32 checkpoint.
 
-## 🧩 Usage in ComfyUI (3 Nodes)
+## Usage
 
-Ready-to-run workflows are included in [`example_workflows/`](example_workflows/):
-- English Workflow: [`01_Krea2_PixelHead_ZeroVAE_EN.json`](example_workflows/01_Krea2_PixelHead_ZeroVAE_EN.json)
-- 中文对比工作流: [`01_Krea2_PixelHead_ZeroVAE_ZH.json`](example_workflows/01_Krea2_PixelHead_ZeroVAE_ZH.json)
+Example workflows are in [`example_workflows/`](example_workflows/):
+- [`01_Krea2_PixelHead_ZeroVAE_EN.json`](example_workflows/01_Krea2_PixelHead_ZeroVAE_EN.json)
+- [`01_Krea2_PixelHead_ZeroVAE_ZH.json`](example_workflows/01_Krea2_PixelHead_ZeroVAE_ZH.json)
 
 ```text
 [Load Diffusion Model (Krea-2)] ──► [Krea-2 Pixel Head Tap]
@@ -100,19 +77,15 @@ Ready-to-run workflows are included in [`example_workflows/`](example_workflows/
             [Load Krea-2 Pixel Head] ──► [Krea-2 Pixel Decode (Zero VAE)] ──► IMAGE
 ```
 
-> **Pure Text-to-Image requires ZERO VAE loaded in VRAM.** If you use Style/Reference Image nodes, keep the VAE connected only to encode the reference input image once, while using `Krea-2 Pixel Decode (Zero VAE)` at the end of `KSampler`.
+Pure Text-to-Image requires no VAE. When using style/reference images, keep the VAE connected only to encode the reference input image, and use `Krea-2 Pixel Decode (Zero VAE)` after `KSampler`.
 
----
+## Limitations
 
-## ⚠️ Compatibility & Known Limits
+- **Step range**: Trained across `ModelSamplingFlux(shift=1.15)` final-step $\sigma \in [0.045, 0.420]$ (5–12 step Turbo and 18–35 step Raw).
+- **Offline `.latent` files**: Requires live `6144`-dim DiT features from the final denoising step; cannot decode standalone `.latent` files without running the DiT.
+- **Sub-pixel chaotic splatter**: On dense ink-splatter abstractions, sub-pixel grain is slightly softer than `qwen_image_vae`.
 
-- **Supported Samplers & Steps**: Calibrated across `ModelSamplingFlux(shift=1.15)` final-step $\sigma \in [0.045, 0.420]$, covering both **8-Step Turbo (`5–12` steps, `CFG 1.0`)** and **Raw / Multi-Step (`18–35` steps, `CFG 1.0–5.0`)**.
-- **Standalone `.latent` Files**: Requires live `6144`-dim DiT features captured by `Krea-2 Pixel Head Tap` on the final denoising step; cannot blindly decode offline `.latent` files without running the DiT.
-- **Chaotic Micro-Splatter**: On extreme sub-pixel chaotic ink-splatter abstractions, micro-grain is slightly smoother than the 3D-causal `WanVAE`.
+## License & Credits
 
----
-
-## 📜 License & Acknowledgements
-
-- **Code & Weights License**: **MIT License** (100% clean-room PyTorch implementation).
-- **Method Reference**: Built upon the Direct Pixel Decoder formulation in [*FastFrames: Video Generation at Interactive Latency*](https://arxiv.org/abs/2611.23226) (Apple Research, 2026) and inspired by community 2D feature readout explorations (`sorryhyun/anima-pixel-decoder`).
+- **License**: MIT (clean-room PyTorch implementation).
+- **References**: Direct pixel readout formulation from [*FastFrames: Video Generation at Interactive Latency*](https://arxiv.org/abs/2611.23226) (Apple Research, 2026); 2D feature readout and ComfyUI hook design informed by `sorryhyun/anima-pixel-decoder`.

@@ -18,13 +18,13 @@
       "mode": 0,
       "inputs": [],
       "outputs": [],
-      "title": "⚡ Krea-2 Direct Pixel Head — 免 VAE 极速直出与官方 VAE 1:1 同屏对比",
+      "title": "Krea-2 Direct Pixel Head — 免 VAE 直接解码与官方 VAE 1:1 同屏对比",
       "properties": {
         "Node name for S&R": "MarkdownNote",
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        "### Krea-2 Bridged Direct Pixel Head（免 VAE 极速直出）\n- **默认零 VAE 极速通道**：采样结束后由 `9. Krea-2 Pixel Decode (Zero VAE)` 直接读取 `6144` 维隐藏态特征与 `2x2` 去噪潜块，秒出高清 RGB，纯文生图全程无需加载 `qwen_image_vae.safetensors`！\n- **全模式兼容**：同时支持 `krea2_turbo`（8步 `CFG 1.0`）、`krea2_raw`（20~35步 `CFG > 1.0`）以及风格参考图编辑（自动剥离文本与参考 token）。\n- **1:1 同屏对比**：框选下方紫色 Bypass 节点（`11`、`12`、`13`）按 **`Ctrl + B`** 即可同种子对比原版官方 VAE。"
+        "### Krea-2 Bridged Direct Pixel Head（免 VAE 直接解码）\n- **默认零 VAE 直出路径**：采样结束后由 `9. Krea-2 Pixel Decode (Zero VAE)` 直接读取 `6144` 维隐藏态特征与 `2x2` 去噪潜块，直接输出 RGB，纯文生图全程无需加载 `qwen_image_vae.safetensors`。\n- **全模式兼容**：同时支持 `krea2_turbo`（8步 `CFG 1.0`）、`krea2_raw`（20~35步 `CFG > 1.0`）以及风格参考图编辑（自动剥离文本与参考 token）。\n- **1:1 同屏对比**：框选下方紫色 Bypass 节点（`11`、`12`、`13`）按 **`Ctrl + B`** 即可同种子对比原版官方 VAE。"
       ],
       "color": "#1e2d24",
       "bgcolor": "#14221a"
