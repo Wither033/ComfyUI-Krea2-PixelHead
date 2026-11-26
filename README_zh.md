@@ -74,7 +74,9 @@ git clone https://github.com/Wither033/ComfyUI-Krea2-PixelHead.git
 - **步数范围**：覆盖 `ModelSamplingFlux(shift=1.15)` 末步 $\sigma \in [0.045, 0.420]$（5～12 步 Turbo 与 18～35 步多步采样）。
 - **离线 `.latent` 文件**：需要采样最后一步的 `6144` 维 DiT 实时特征，无法单独解码外部保存的 `.latent` 文件。
 
-## 许可与致谢
+## 原作者署名、致谢与开源协议
 
-- **开源协议**：MIT License（独立编写的 PyTorch 实现）。
-- **参考来源**：架构思路来自 Apple Research 的 [*FastFrames* (`arXiv:2611.23226`)](https://arxiv.org/abs/2611.23226)，2D 特征读出与钩子设计参考了 `sorryhyun/anima-pixel-decoder`。
+
+- **原作者与核心管线致谢**：本项目的像素头核心结构、ComfyUI `Tap + Decode` 挂载范式及训练管线（包括无跳连 ConvNeXt + `2× PixelShuffle` `1x/2x` 解码结构、末层线性映射前 `f_u + g·(f_c - f_u)` 特征截获与潜变量块融合、基于 `VAE(x̂0)` 的跨 Base/Turbo 单步 `ReplayBuffer` 蒸馏、RGBA 四通道读出，以及 `v0.3` 的 2D Haar 小波子带预测与锁定低频 `LL` 的高频对抗训练思路）衍生并改编自原作者 **[Seunghyun Ji (`sorryhyun`)](https://huggingface.co/sorryhyun)**（[GitHub `@sorryhyun`](https://github.com/sorryhyun)）在 **[`sorryhyun/anima_lora`](https://github.com/sorryhyun/anima_lora)**、**[`sorryhyun/anima_pixel_decoder`](https://huggingface.co/sorryhyun/anima-pixel-decoder)** 与 **[`sorryhyun/ComfyUI-Anima-PixelDecoder`](https://github.com/sorryhyun/ComfyUI-Anima-PixelDecoder)** 中的开创性开源工作（MIT License，`Copyright (c) 2026 Seunghyun Ji`）。特此向原作者 `sorryhyun` 致谢！
+- **基础论文参考**：直接像素读出（Direct Pixel Readout）理论框架参考 [*FastFrames: Video Generation at Interactive Latency* (`arXiv:2611.23226`)](https://arxiv.org/abs/2611.23226)（Gene Chou et al., Apple & Cornell, 2026）。
+- **开源协议**：[MIT License](LICENSE)（完整保留原作者 `Copyright (c) 2026 Seunghyun Ji` 版权声明；配合各扩散底座模型使用时请同时遵守对应底模的许可证条款）。
